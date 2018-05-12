@@ -22,6 +22,7 @@ def run_loop(agents, env, max_frames=0):
         timesteps = env.step(actions)
         # Only for a single player!
         is_done = (num_frames >= max_frames) or timesteps[0].last()
+        # Sampling Steps
         yield [last_timesteps[0], actions[0], timesteps[0]], is_done
         if is_done:
           break

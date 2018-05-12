@@ -22,7 +22,8 @@ class A3CAgent(object):
     assert msize == ssize
     self.msize = msize
     self.ssize = ssize
-    # All the actions contained in pysc.actions.FUNCTIONS
+    # All the actions contained in pysc.actions.FUNCTIONS (524 actions in total)
+    # so self.isize = 524 (index of the action)
     self.isize = len(actions.FUNCTIONS)
 
 
@@ -53,19 +54,21 @@ class A3CAgent(object):
       self.info = tf.placeholder(tf.float32, [None, self.isize], name='info')
 
       # Build networks
-      net = build_net(self.minimap, self.screen, self.info, self.msize, self.ssize, len(actions.FUNCTIONS), ntype)
+      net = build_net(self.minimap, self.screen, self.info, self.msize, self.ssize, self.isize, ntype)
       self.spatial_action, self.non_spatial_action, self.value = net
 
       # Set targets and masks
       self.valid_spatial_action = tf.placeholder(tf.float32, [None], name='valid_spatial_action')
       self.spatial_action_selected = tf.placeholder(tf.float32, [None, self.ssize**2], name='spatial_action_selected')
-      self.valid_non_spatial_action = tf.placeholder(tf.float32, [None, len(actions.FUNCTIONS)], name='valid_non_spatial_action')
-      self.non_spatial_action_selected = tf.placeholder(tf.float32, [None, len(actions.FUNCTIONS)], name='non_spatial_action_selected')
+      self.valid_non_spatial_action = tf.placeholder(tf.float32, [None, self.isize], name='valid_non_spatial_action')
+      self.non_spatial_action_selected = tf.placeholder(tf.float32, [None, self.isize], name='non_spatial_action_selected')
       self.value_target = tf.placeholder(tf.float32, [None], name='value_target')
 
-      # Compute log probability
+      # Compute log probability for Spatial Actions
       spatial_action_prob = tf.reduce_sum(self.spatial_action * self.spatial_action_selected, axis=1)
       spatial_action_log_prob = tf.log(tf.clip_by_value(spatial_action_prob, 1e-10, 1.))
+      
+      # Compute log probability for Non-Spatial Actions
       non_spatial_action_prob = tf.reduce_sum(self.non_spatial_action * self.non_spatial_action_selected, axis=1)
       valid_non_spatial_action_prob = tf.reduce_sum(self.non_spatial_action * self.valid_non_spatial_action, axis=1)
       valid_non_spatial_action_prob = tf.clip_by_value(valid_non_spatial_action_prob, 1e-10, 1.)
@@ -74,7 +77,7 @@ class A3CAgent(object):
       self.summary.append(tf.summary.histogram('spatial_action_prob', spatial_action_prob))
       self.summary.append(tf.summary.histogram('non_spatial_action_prob', non_spatial_action_prob))
 
-      # Compute losses, more details in https://arxiv.org/abs/1602.01783
+      # Compute losses, more details in https://arxiv.org/abs/1708.04782
       # Policy loss and value loss
       action_log_prob = self.valid_spatial_action * spatial_action_log_prob + non_spatial_action_log_prob
       advantage = tf.stop_gradient(self.value_target - self.value)

@@ -1,0 +1,6 @@
+temp/*
+snapshot/*
+log/*
+.vscode/*
+__pycache__/*
+agents/__pycache__/*
